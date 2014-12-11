@@ -1,0 +1,15 @@
+{% extends "base.jinja2" %}
+
+{% block title %}List of messages {% endblock %}
+
+{% block content %}
+  {% if object_list %}
+    <h3>People are saying:</h3>
+    {% for msg in object_list %}
+      <blockquote><p>{{ msg.body }}</p></blockquote>
+    {% endfor %}
+    <a href="add/" class="btn btn-primary">Add your message!</a>
+  {% else %}
+    <p>No messages are available.</p>
+  {% endif %}
+{% endblock %}

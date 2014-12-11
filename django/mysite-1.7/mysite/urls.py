@@ -14,6 +14,7 @@ urlpatterns = patterns('',
 
     # this has to be set in order for django to direct to polls.urls.py
     url(r'^polls/', include('polls.urls', namespace="polls")),
+    url(r'^smsg/', include('smsg.urls', namespace="smsg")),
 
     url(r'^admin/', include(admin.site.urls)),
 )

@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'twitter_bootstrap',
     'mysite',
     'polls',
+    'smsg',
 )
 
 MIDDLEWARE_CLASSES = (
