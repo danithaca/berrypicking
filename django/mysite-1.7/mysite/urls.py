@@ -5,9 +5,9 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    url(r'^$', 'django.template.response.TemplateResponse', {'template': 'mysite/home.html', 'context': {'message': 'hello foobar'}}, name='home'),
+    url(r'^$', 'django.template.response.TemplateResponse', {'template': 'mysite/home.twig', 'context': {'message': 'hello foobar'}}, name='home'),
     #url(r'^$', 'mysite.views.home', name='home'),
-    url(r'^login/$', 'django.contrib.auth.views.login', {'extra_context': {'next': '/'}}, name='login'),
+    url(r'^login/$', 'django.contrib.auth.views.login', {'extra_context': {'next': '/'}, 'template_name': 'mysite/login.twig'}, name='login'),
     #url(r'^user/', include('django.contrib.auth.urls', namespace="user")),
 
     # url(r'^blog/', include('blog.urls')),
