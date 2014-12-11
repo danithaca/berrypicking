@@ -5,8 +5,11 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    url(r'^$', 'mysite.views.home', name='home'),
-    url(r'^login/$', 'django.contrib.auth.views.login', {'template_name': 'admin/login.html'}),
+    url(r'^$', 'django.template.response.TemplateResponse', {'template': 'mysite/home.html', 'context': {'message': 'hello foobar'}}, name='home'),
+    #url(r'^$', 'mysite.views.home', name='home'),
+    url(r'^login/$', 'django.contrib.auth.views.login', {'extra_context': {'next': '/'}}, name='login'),
+    #url(r'^user/', include('django.contrib.auth.urls', namespace="user")),
+
     # url(r'^blog/', include('blog.urls')),
 
     # this has to be set in order for django to direct to polls.urls.py
