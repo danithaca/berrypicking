@@ -36,7 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'twitter_bootstrap',
+    #'twitter_bootstrap',
     'mysite',
     'polls',
     'smsg',
@@ -89,3 +89,5 @@ STATIC_ROOT = 'static/'
 
 # Added from tutorial. This folder contains override from other apps.
 TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'templates')]
+
+LOGIN_REDIRECT_URL = '/'
