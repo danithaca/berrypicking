@@ -6,7 +6,7 @@
   {% if object_list %}
     <h3>People are saying:</h3>
     {% for msg in object_list %}
-      <blockquote><p>{{ msg.body }}</p></blockquote>
+      <blockquote><p>{{ msg.body }}<small><a href="{{ msg.id }}/edit">Edit</a></small></p></blockquote>
     {% endfor %}
     <a href="add/" class="btn btn-primary">Add your message!</a>
   {% else %}
