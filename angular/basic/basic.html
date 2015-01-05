@@ -1,0 +1,18 @@
+<!doctype html>
+<html ng-app>
+<head>
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <label>Name:</label>
+  <input type="text" ng-model="yourName" placeholder="Enter a name here">
+  <input type="text" ng-model="yourEmail" placeholder="Enter your email here">
+  <hr>
+  <h1>Hello {{yourName}}!</h1>
+  <p>My email: {{yourEmail}}</p>
+</div>
+</body>
+</html>
