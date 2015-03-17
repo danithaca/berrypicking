@@ -10,6 +10,9 @@ class Survey(models.Model):
     # this is the survey feedback on "dissatisfied other". the text to be categorized.
     feedback = models.TextField()
 
+    # this could either be repair or customer_service
+    repair = models.CharField(max_length=50)
+
     # language code: en, pt, es, etc. blank means it's not processed through google translate yet.
     language_code = models.CharField(max_length=2, blank=True)
     # google translation
@@ -23,7 +26,7 @@ class Survey(models.Model):
     categorization_result = models.CharField(max_length=100)
     # final results from mturk (processed if we got multiple results from mturk).
     category = models.CharField(max_length=50)
-
+    sub_category = models.CharField(max_length=200)
     created = models.DateTimeField(auto_now_add=True)
 
 
