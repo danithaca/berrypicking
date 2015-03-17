@@ -1,3 +1,6 @@
+# permute any string
+
+
 def permute(s):
     if len(s) == 1:
         return [s]
