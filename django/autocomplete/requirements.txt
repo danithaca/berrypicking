@@ -1,0 +1,5 @@
+south
+django-cities-light
+django
+django-vote
+django-autocomplete-light
