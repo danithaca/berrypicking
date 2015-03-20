@@ -1,3 +1,5 @@
+(daniel's note: mainly look at the demo app for the simplest case)
+
 test_project: basic features and examples
 =========================================
 

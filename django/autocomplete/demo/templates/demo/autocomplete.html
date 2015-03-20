@@ -1,0 +1,8 @@
+{% load url from future %}
+<div>
+    {% for user in users %}
+        <div class="autocomplete-choice">{{ user }}</div>
+    {% empty %}
+        No user found matching your query (try "test")
+    {% endfor %}
+</div>

@@ -108,6 +108,9 @@ INSTALLED_APPS = (
     'autocomplete_light.example_apps.create_choice_on_the_fly',
 
     'navigation_autocomplete',
+
+    # my demo file
+    'demo',
 )
 
 

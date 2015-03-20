@@ -1,0 +1,31 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Autocomplete simple demo</title>
+    <script type="text/javascript" src="{% static 'jquery.js' %}"></script>
+    {% include 'autocomplete_light/static.html' %}
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#demo-autocomplete').yourlabsAutocomplete({
+                // autocomplete endpoint on server
+                url: '{% url 'demo_autocomplete' %}',
+                // which tag is to be treated as an item
+                choiceSelector: 'div.autocomplete-choice',
+                minimumCharacters: 1
+            }).input.bind('selectChoice', function(e, choice, autocomplete) {
+                // when clicking on the choice item, what actions to do.
+                //console.log($(e.target).val());
+                //console.log(choice.text());
+                $(e.target).val(choice.text())
+                // document.location.href = choice.attr('href');
+            });
+        });
+    </script>
+</head>
+<body>
+<input type="text" name="q" id="demo-autocomplete" />
+</body>
+</html>
