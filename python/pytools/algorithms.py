@@ -35,7 +35,7 @@ def find_position_match(s1, s2):
     return longest, longest_start, longest_end
 
 
-def find_match_tokens(s1, s2):
+def find_match_tokens(s1, s2, min_length=2):
     """
     find the matching substring tokens in s1 and s2. e.g., 'dedf abc .', ' abcdedf' would be ' ', 'abc', 'dedf'
     :param s1:
@@ -51,7 +51,7 @@ def find_match_tokens(s1, s2):
         match, start, end = find_position_match(ss1, ss2)
 
         # note: we should test subset
-        if match:
+        if match and end - start > min_length:
             # adjust start/end
             start = (m-i if m-i > 0 else 0) + start
             end = (m-i if m-i > 0 else 0) + end
@@ -75,9 +75,3 @@ def find_match_tokens(s1, s2):
                 result.append((start, end))
 
     return [s1[i1:i2] for (i1, i2) in result]
-
-
-#print(detect_match('bbcdefgh', 'bcfg'))
-print(find_match_tokens('Much more not even contacted me', 'Moreover they didn\'t even get in contact with me'))
-#print(detect_match('dedf abc .', ' abcdedf'))
-#print(find_match('defgh', 'bcfg'))
