@@ -40,6 +40,7 @@ INSTALLED_APPS = (
     'mysite',
     'polls',
     'smsg',
+    'mturk',
 )
 
 MIDDLEWARE_CLASSES = (
