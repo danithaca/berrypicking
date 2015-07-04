@@ -42,7 +42,6 @@
   'use strict';
 
   var app = {}; // create namespace for our app
-  app.localStorage = new Backbone.LocalStorage("backbone-todo");
 
   //--------------
   // Models
@@ -52,7 +51,7 @@
       title: ''
     },
     // this is needed to enable model.destroy()
-    localStorage: app.localStorage
+    localStorage:  new Backbone.LocalStorage("backbone-todo")
   });
 
   //--------------
@@ -60,11 +59,8 @@
   //--------------
   app.TodoList = Backbone.Collection.extend({
     model: app.Todo,
-    localStorage: app.localStorage
+    localStorage: app.Todo.localStorage
   });
-
-  // instance of the Collection
-  app.todoList = new app.TodoList();
 
   //--------------
   // Views
@@ -95,10 +91,10 @@
     el: '#todoapp',
     initialize: function () {
       this.input = this.$('#new-todo');
-      app.todoList.on('add', this.addOne, this);
+      this.collection.on('add', this.addOne, this);
       // instead of loading from previous saved data, clean it up.
-      app.todoList.reset();
-      // app.todoList.fetch(); // Loads list from local storage
+      this.collection.reset();
+      // this.collection.fetch(); // Loads list from local storage, and render
     },
     events: {
       'keypress #new-todo': 'createTodoOnEnter'
@@ -107,7 +103,7 @@
       if ( e.which !== 13 || !this.input.val().trim() ) { // ENTER_KEY = 13
         return;
       }
-      app.todoList.create({
+      this.collection.create({
         title: this.input.val().trim()
       });
       this.input.val(''); // clean input box
@@ -122,7 +118,8 @@
   // Initializers
   //--------------
 
-  app.appView = new app.AppView();
+  // this is the only instance
+  app.appView = new app.AppView({collection: new app.TodoList()});
 
 </script>
 
