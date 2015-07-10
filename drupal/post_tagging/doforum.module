@@ -1,0 +1,161 @@
+<?php
+
+function doforum_menu() {
+  $items['doforum/tag'] = array(
+    'title' => 'D.O. forum post tagging interface',
+    'page callback' => 'doforum_tag',
+    //'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK
+  );
+  
+  $items['doforum/autocomplete'] = array(
+  	'title' => 'Autocomplete for module names',
+  	'page callback' => 'doforum_autocomplete',
+  	'access callback' => TRUE,
+  	'type' => MENU_CALLBACK
+  );
+  
+  return $items;
+}
+
+function doforum_tag() {
+  global $user;
+  $uid = $user->uid;
+  $output = '';
+  if ($uid == 0) {
+    return "Please" . l("login", "user") . "first.";
+  }
+  
+  db_set_active('pivots_analysis');
+  $results = db_query("SELECT count(distinct nid) thread_count, count(*) total_count FROM content_to_tag");
+  $total_num = db_fetch_array($results);
+  $results = db_query("SELECT count(distinct nid) thread_count, count(*) total_count FROM manual_tags WHERE uid=%d", $uid);
+  $tagged_num = db_fetch_array($results);
+  $output .= "<p>Welcome <strong>{$user->name}</strong>. You have tagged {$tagged_num['total_count']}/{$total_num['total_count']} messages, {$tagged_num['thread_count']}/{$total_num['thread_count']} threads.</p><br><br>";
+  db_set_active();
+  
+  $output .= drupal_get_form('doforum_tagform'); 
+  return $output;
+}
+
+function doforum_tagform() {
+  global $user;
+  $uid = $user->uid;
+  $form['#tree'] = TRUE;
+  $count = 0;
+  $page_limit = 10;
+  
+  db_set_active('pivots_analysis');
+  $results = db_query("SELECT nid, cid, title, body FROM content_to_tag WHERE (nid, cid) NOT IN (SELECT nid, cid FROM manual_tags WHERE uid=$uid) ORDER BY nid desc, cid asc LIMIT $page_limit");
+  db_set_active();
+  while ($post = db_fetch_object($results)) {
+  	
+  	$url = "http://drupal.org/node/{$post->nid}";
+  	if ($post->cid!=0) {
+  		$url = $url."#comment-{$post->cid}";
+  	}
+  	$box = theme_box(l($post->title, $url), $post->body);
+  	
+  	$form['tagging'][$post->nid][$post->cid]['box'] = array(
+      '#type' => 'markup',
+      '#value' => $box
+    );
+	
+    db_set_active('pivots_analysis');
+	$default_tags = db_result(db_query("SELECT tags FROM manual_tags WHERE nid=%d and cid=%d ORDER BY timestamp DESC LIMIT 1", $post->nid, $post->cid));
+	db_set_active();
+    if (!isset($default_tags) || empty($default_tags)) {
+        db_set_active('pivots_analysis');
+        $projects = db_query("SELECT DISTINCT title FROM project p INNER JOIN pivots_match m ON p.nid=m.src_id " .
+                "WHERE pivot_id=4151 AND dest_id=%d AND a1=%d", $post->nid, $post->cid);
+        db_set_active();
+        $tags_array = array();
+        while ($p = db_fetch_object($projects)) {
+            $tags_array[] = $p->title."[]";
+        }
+        $default_tags = implode(", ", $tags_array);
+    }
+	
+    $form['tagging'][$post->nid][$post->cid]['tags'] = array(
+        '#type' => 'textfield',
+        '#title' => "Modules mentioned",
+        '#default_value' => $default_tags,
+        '#description' => "Format: modulename[alias], or ~[alias]. Case-sensitive please.",
+        '#autocomplete_path' => 'doforum/autocomplete'
+    );
+    $form['tagging'][$post->nid][$post->cid]['suffix'] = array(
+        '#type' => 'markup',
+        '#value' => "<br>"
+    );
+  }
+  if (!empty($form)) {
+    $form['uid'] = array(
+      '#type' => 'hidden',
+      '#value' => $uid
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit')
+    );
+  }
+  return $form;
+}
+
+function doforum_tagform_submit($form, &$form_state) { 
+  $uid = $form_state['values']['uid'];
+  $tagging = $form_state['values']['tagging'];
+  $count_ok = 0;
+  foreach ($tagging as $nid => $node_data) {
+    foreach ($node_data as $cid => $post_data) {
+      $tags = $post_data['tags'];
+      if (empty($tags)) {
+        $tags = "";
+      }
+      db_set_active('pivots_analysis');
+      db_query("INSERT INTO manual_tags(nid, cid, uid, tags) VALUES($nid, $cid, $uid, '%s') ON DUPLICATE KEY UPDATE tags='%s'", $tags, $tags);
+      db_set_active();
+      $count_ok ++;
+    }
+  }
+  drupal_set_message("Successfully added $count_ok tags!");
+  $form_state['redirect'] = 'doforum/tag';
+}
+
+/* function doforum_autocomplete($string) {
+	$projects = array();
+	db_set_active('pivots_analysis');
+	$results = db_query("SELECT title FROM project p INNER JOIN project_usage u ON p.nid=u.nid WHERE title like '%%%s%%' ORDER BY title LIMIT 10", $string);
+	db_set_active();
+	while ($project = db_fetch_object($results)) {
+		$projects[$project->title] = check_plain($project->title);
+	}
+	print drupal_json($projects);
+}*/
+
+function doforum_autocomplete($string) {
+  $array = drupal_explode_tags($string);
+
+  // Fetch last tag
+  $last_string = trim(array_pop($array));
+  $matches = array();
+  if ($last_string != '') {
+  	db_set_active('pivots_analysis');
+    $result = db_query("SELECT title as name FROM project p INNER JOIN project_usage u ON p.nid=u.nid WHERE title like '%%%s%%' ORDER BY rank asc LIMIT 10", $last_string);
+	db_set_active();
+    
+    $prefix = count($array) ? implode(', ', $array) .', ' : '';
+
+    while ($tag = db_fetch_object($result)) {
+      $n = $tag->name;
+      // Commas and quotes in terms are special cases, so encode 'em.
+      if (strpos($tag->name, ',') !== FALSE || strpos($tag->name, '"') !== FALSE) {
+        $n = '"'. str_replace('"', '""', $tag->name) .'"';
+      }
+      $matches[$prefix . $n] = check_plain($tag->name);
+    }
+  }
+  drupal_json($matches);
+}
+
+?>

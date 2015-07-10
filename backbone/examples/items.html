@@ -42,6 +42,7 @@
   'use strict';
 
   var app = {}; // create namespace for our app
+  app.localStorage = new Backbone.LocalStorage("backbone-todo");
 
   //--------------
   // Models
@@ -51,7 +52,7 @@
       title: ''
     },
     // this is needed to enable model.destroy()
-    localStorage:  new Backbone.LocalStorage("backbone-todo")
+    localStorage: app.localStorage
   });
 
   //--------------
@@ -59,7 +60,7 @@
   //--------------
   app.TodoList = Backbone.Collection.extend({
     model: app.Todo,
-    localStorage: app.Todo.localStorage
+    localStorage: app.localStorage
   });
 
   //--------------
@@ -93,6 +94,7 @@
       this.input = this.$('#new-todo');
       this.collection.on('add', this.addOne, this);
       // instead of loading from previous saved data, clean it up.
+      // looks like the storage doesn't persist.
       this.collection.reset();
       // this.collection.fetch(); // Loads list from local storage, and render
     },

@@ -1,0 +1,36 @@
+<?php
+
+// add GA tracking code
+function umcssainfo_preprocess_page(&$variables) {
+  // Example code. Make sure your module runs all values through drupal_to_js() to be protected against XSS.
+  $pid1 = rand(1, 3);
+  $pid2 = rand(1, 3);
+  $nid1 = rand(1, 10);
+  $nid2 = rand(1, 10);
+  $injection .= "pageTracker._trackEvent('PivotsPageview_$pid1', '$nid1');";
+  $injection .= "pageTracker._trackEvent('PivotsPageview_$pid2', '$nid2');";
+
+  $variables['closure'] = preg_replace('/(var pageTracker = _gat._getTracker\("UA-\d{4,}-\d+"\);)/', "$1$injection", $variables['closure']);
+
+}
+
+function umcssainfo_block($op='list', $delta=0) {
+  if ($op == 'list') {
+    $block[0]['info'] = t('GA - customization');
+    return $block;
+  }
+  else if ($op == 'view') {
+    if ($delta == 0) {
+      $timestamp = time();
+      $pid = rand(1, 3);
+      $nid = rand(1, 10);
+      $clickid = rand(1, 100);
+      $block['subject'] = 'GA - customization';
+      $block['content'] = l("Click me", "<front>", array("attributes" => array(
+          'onclick' => "javascript:pageTracker._trackEvent('PivotsClick_$pid', '$nid', '$clickid');",
+          //'target' => '_blank'
+      )));
+    }
+    return $block;
+  }
+}

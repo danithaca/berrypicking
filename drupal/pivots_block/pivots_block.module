@@ -1,0 +1,132 @@
+<?php
+// $Id: pivots_block.module,v 1.19 2009/09/23 15:14:17 danithaca Exp $
+
+/**
+ * @file
+ * This file provides the pivots_blocks that generates module recommendations.
+ *
+ * Current limitations/issues:
+ *   1. Recommendation data is stored externally on master-other.drupal.org database.
+ *      The reason to use external database is to give flexibility to developers to tweak the algorithm.
+ *   2. "More" is disabled temporarily to make the code clearer, will be added later if needed.
+ *
+ * This module was developed with support from the National Science
+ * Foundatio under award IIS-0812042. Any opinions, findings, and conclusions
+ * or recommendations expressed or embodied in this software are those of the
+ * author(s) and do not necessarily reflect the views of the National Science
+ * Foundation.
+ */
+
+define('PID_CONVERSATION', 4151); // conversation pivot algorithm ID that displays related conversations
+define('PID_DOUBLE', 5003);       // double pivot algorithm ID that displays related projects in different algorithms.
+define('LIMIT_CONVERSATION', 5);
+define('LIMIT_DOUBLE', 5);
+define('LIMIT_MAX', 100);         // maximum items to display in the block or on a page.
+
+function pivots_block_output() {
+  // skip nid=3060, the drupal project
+  if (($node = project_get_project_from_menu()) && ($node->nid != 3060)) {
+    $output = '';
+    $output .= _pivots_block_content($node->nid, PID_CONVERSATION, t("Related discussions"), LIMIT_CONVERSATION);
+    $output .= _pivots_block_content($node->nid, PID_DOUBLE, t("Related projects"), LIMIT_DOUBLE);
+    $output .= _pivots_block_suggestbox($node->nid, PID_DOUBLE);
+    return $output;
+  }
+}
+
+function _pivots_block_content($node_id, $pivot_id, $title, $limit) {
+  $output = '';
+  $ga_event = "$node_id";
+  $items = _pivots_block_generate_items($node_id, $pivot_id, $limit);
+  if (!empty($items)) {
+    foreach ($items as $position => $item) {
+      $items[$position] = l($item['title'], "node/{$item['nid']}", array( 'attributes' => array(
+              "onClick" => "javascript:pageTracker._trackEvent('PivotsClick_${pivot_id}', '${node_id}_{$item['nid']}');"
+      )));
+      $ga_event .= "_{$item['nid']}";
+    }
+    $output = theme('item_list', $items, $title);
+  }
+  $GLOBALS['conf']['googleanalytics_codesnippet_after'] .= "pageTracker._trackEvent('PivotsPageview_{$pivot_id}', '{$ga_event}');";
+  return $output;
+}
+
+function _pivots_block_generate_items($node_id, $pivot_id, $limit) {
+  if ($limit <= 0) {
+    $limit = LIMIT_MAX;
+  }
+
+  db_set_active('pivots');  // NOTE: here we activate the pivots database.
+  // if there's database failure, we just pretend nothing happens whatsoever. pivots_block returns nothing in this case.
+  $matches = @db_query("SELECT DISTINCT dest_id FROM {pivots_match} WHERE pivot_id=%d AND src_id=%d
+        AND dest_id<>%d ORDER BY score DESC", $pivot_id, $node_id, $node_id);
+  db_set_active();  // NOTE: change back to use the default database
+
+  $count = 0;
+  $items = array();
+  while (($match = @db_fetch_array($matches)) && $count < $limit) {
+    $dest_id = $match['dest_id'];
+    $result = db_query("SELECT title FROM {node} WHERE nid=%d AND status=1", $dest_id);
+    // there might be cases that the node was deleted, or set to unpublished between pivots database refresh
+    // so here we only count the valid node.
+    $title = db_result($result);
+    if ($title) {
+      $items[] = array('nid' => $dest_id, 'title' => $title, 'pid' => $pivot_id);
+      $count++;
+    }
+  }
+  return $items;
+}
+
+function _pivots_block_suggestbox($node_id, $pivot_id) {
+  $form = array();
+  $form['suggestion'] = array (
+    '#type' => 'textfield',
+    //'#description' => t("Please suggest related projects. Multiple suggestions require multiple submission."),
+    '#size' => 20,
+    '#maxlength' => 128,
+    '#weight' => 0,
+    '#id' => 'pivots_block_suggestbox',
+  );
+  $form['submit'] = array(
+    '#type' => 'button',
+    '#value' => t('Suggest project!'),
+    '#weight' => 1,
+    '#id' => 'pivots_block_suggestbutton'
+  );
+
+  drupal_add_js("
+      $(document).ready(function() {
+        $('#pivots_block_suggestbutton').click(function() {
+          var pattern = /^http[:][/][/]drupal[.]org[/]project[/]\w+$/;
+          var suggestion = $('#pivots_block_suggestbox').val();
+          while (!suggestion.match(pattern)) {
+            suggestion = prompt('Please suggest a related project using URLs such as http://drupal.org/project/cck. Thank you.');
+            if (!suggestion) break;
+          }
+          if (suggestion) {
+            alert('Thank you for suggesting a related project. All suggestions will be aggregated and updated to the results soon.');
+            pageTracker._trackEvent('PivotsSuggest_${pivot_id}', '${node_id}_'+suggestion);
+          }
+        });
+      });
+    ", 'inline');
+
+  return drupal_render_form('pivots_block_suggestbox', $form);
+}
+
+/**
+ * Implementation of hook_block()
+ */
+function pivots_block_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      $blocks[0]['info'] = t('pivots_block: Recommendations');
+      return $blocks;
+
+    case 'view':
+      $block['subject'] = t('Recommendations');
+      $block['content'] = pivots_block_output();
+      return $block;
+  }
+}

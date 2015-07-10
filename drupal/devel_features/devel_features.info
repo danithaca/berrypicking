@@ -1,0 +1,14 @@
+name = Devel Features
+description = Features required for development sites
+core = 7.x
+package = Customization
+version = 7.x-1.1
+project = devel_features
+dependencies[] = contextual
+dependencies[] = ctools
+dependencies[] = dblog
+dependencies[] = devel
+dependencies[] = diff
+dependencies[] = features
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:2

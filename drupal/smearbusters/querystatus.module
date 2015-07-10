@@ -1,0 +1,56 @@
+<?php
+
+function querystatus_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      $blocks[0]['info'] = t('smearbusters: Query status');
+      return $blocks;
+
+    case 'view':
+      $block['subject'] = t('Query status');
+      $block['content'] = querystatus_output();
+      return $block;
+  }
+}
+
+function querystatus_output() { 
+  $result = @db_query("select w.sid sid, n.title title from {content_type_ticket} t inner join {node} n 
+      on t.field_queryid_nid=n.nid inner join {workflow_node} w on t.nid=w.nid");
+  while( $ticket = @db_fetch_array($result) ) {
+    $sid = $ticket['sid'];
+    $query_title = $ticket['title'];
+    $state = 'other';
+    switch ($sid) {
+    case 2: // open
+    case 5: // reopen
+      $state = 'waiting';
+      break;
+    case 4: // corrected
+      $state = 'corrected';
+      break;
+    case 3: // inaccessible
+    case 6: // response not allowed
+    case 7: // no smear here
+    case 8: // already corrected
+      $state = 'noaction';
+      break;
+    }
+    $counter[$query_title][$state] ++;
+    $counter[$query_title]['total'] ++;
+  }
+  
+  $header = array('title', 'instances detected', 'corrected',
+      'waiting for correction', 'no action needed');
+  foreach ($counter as $query => $num) {
+    $r = array();
+    $r[] = $query;
+    $r[] = $num['total'];
+    $r[] = $num['corrected'];
+    $r[] = $num['waiting'];
+    $r[] = $num['noaction'];
+    $rows[] = $r;
+  }
+  return theme('table', $header, $rows);
+}
+
+?>

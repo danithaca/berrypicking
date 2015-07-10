@@ -1,0 +1,162 @@
+<?php
+
+function mitbbs_menu() {
+  $items['mitbbs/%'] = array(
+    'title' => 'MITBBS Rating Interface',
+    'page callback' => 'mitbbs_display',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK
+  );
+  
+  return $items;
+}
+
+function mitbbs_display($action = 'rate') {
+  switch ($action) {
+    case 'rate':
+      return mitbbs_rate();
+    case 'thread':
+      return mitbbs_thread();
+    case 'author':
+      return mitbbs_author();
+  }
+  return '';
+}
+
+function mitbbs_rate() {
+  global $user;
+  $uid = $user->uid;
+  $output = '';
+  if ($uid == 0) {
+    return "Please" . l("login", "user") . "first.";
+  }
+  
+  db_set_active('mitbbs');
+  $results = db_query("SELECT count(rc.fid) fcount, count(distinct thread_id) tcount FROM rating_article_candidates rc INNER JOIN article a on rc.fid=a.fid");
+  $total_num = db_fetch_array($results);
+  $results = db_query("SELECT count(r.fid) fcount, count(distinct a.thread_id) tcount FROM rating r INNER JOIN article a on r.fid=a.fid WHERE uid=%d", $uid);
+  $rated_num = db_fetch_array($results);
+  $output .= "<p><blink>Welcome <strong>{$user->name}</strong></blink>. You have rated {$rated_num['fcount']}/{$total_num['fcount']} articles, {$rated_num['tcount']}/{$total_num['tcount']} threads.</p>";
+  db_set_active();
+  $output .= drupal_get_form('mitbbs_ratingform');
+  
+  return $output;
+}
+
+function mitbbs_ratingform() {
+  global $user;
+  $uid = $user->uid;
+  $form['#tree'] = TRUE;
+  $count = 0;
+  
+  db_set_active('mitbbs');
+  $thread_results = db_query("SELECT DISTINCT thread_id FROM rating_article_candidates rc INNER JOIN article a ON rc.fid=a.fid WHERE rc.fid NOT IN (SELECT fid FROM rating WHERE uid=$uid)");
+  db_set_active();
+  while ($thread_row = db_fetch_object($thread_results)) {
+    $thread_id = $thread_row->thread_id;
+    db_set_active('mitbbs');
+    $thread_info = db_fetch_object(db_query("SELECT title, board FROM article WHERE thread_id=$thread_id ORDER BY timestamp ASC LIMIT 1"));
+    $form['rating'][$thread_id]['title'] = array(
+      '#type' => 'markup',
+      '#value' => "<hr><br><h2>{$thread_info->title} <em>({$thread_info->board})</em></h2><br><br>"
+    );
+    // generate each thread
+    $article_results = db_query("SELECT rc.fid fid, a. article_id, rc.content content
+      FROM rating_article_candidates rc INNER JOIN article a ON rc.fid=a.fid
+      WHERE a.thread_id=$thread_id AND rc.fid NOT IN (SELECT fid FROM rating WHERE uid=$uid) ORDER BY a.timestamp asc");
+    db_set_active();
+    while ($article = db_fetch_object($article_results)) {
+      // should use drupal theme(), but i don't know how to use it in D6 yet
+      $form['rating'][$thread_id][$article->fid]['content'] = array(
+        '#type' => 'markup',
+        '#value' => "<div style='font-family: SimSun;background-color:#000000;color: #c0c0c0;'>$article->content</div>"
+      );
+      // add rating form elements
+      $form['rating'][$thread_id][$article->fid]['informativeness'] = array(
+        '#type' => 'radios',
+        '#title' => "Informativeness",
+        '#options' => array(
+          1 => '1. Totally irrelevant',
+          2 => '2. Agree or disagree without any reasoning',
+          3 => '3. Agree or disagree with limited reasoning',
+          4 => '4. Agree or disagree with moderate reasoning',
+          5 => '5. Very Complete statements'
+        )
+      );
+      $form['rating'][$thread_id][$article->fid]['polpos'] = array(
+        '#type' => 'radios',
+        '#title' => "Political position",
+        '#options' => array(
+          1 => '1. For government',
+          2 => '2. Neutral (objective)',
+          3 => '3. Against government',
+          4 => '4. Information is insufficient to tell personal political positions',
+        )
+      );
+      $form['rating'][$thread_id][$article->fid]['reply_to'] = array(
+        '#type' => 'textfield',
+        '#title' => "Reply to (author name)"
+      );
+      $form['rating'][$thread_id][$article->fid]['suffix'] = array(
+        '#type' => 'markup',
+        '#value' => "<br><br>"
+      );
+      $count ++;
+    }
+    if ($count>=10) {
+      break;
+    }
+  }
+  if (!empty($form)) {
+    $form['uid'] = array(
+      '#type' => 'hidden',
+      '#value' => $uid
+    );
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit')
+    );
+  }
+  return $form;
+}
+
+function mitbbs_ratingform_submit($form, &$form_state) { 
+  $uid = $form_state['values']['uid'];
+  $rating = $form_state['values']['rating'];
+  $count_ok = 0;
+  $count_miss = 0;
+  foreach ($rating as $thread_id => $thread_data) {
+    foreach ($thread_data as $fid => $article_data) {
+      $informativeness = $article_data['informativeness'];
+      $polpos = $article_data['polpos'];
+      $reply_to = $article_data['reply_to'];
+      if (!is_numeric($informativeness) || !is_numeric($polpos)) {
+        $count_miss ++;
+        continue;
+      }
+      if (empty($reply_to)) {
+        $reply_to = 'NULL';
+      } else {
+        $reply_to = "'$reply_to'";
+      }
+      db_set_active('mitbbs');
+      db_query("INSERT INTO rating(fid, uid, informativeness, polpos, reply_to) VALUES($fid, $uid, $informativeness, $polpos, $reply_to)");
+      db_set_active();
+      $count_ok ++;
+      //$output .= $fid . '=' . $article_data['reply_to'] . '<br>';
+    }
+  }
+  drupal_set_message("Successfully added $count_ok ratings, missed $count_miss ratings");
+  $form_state['redirect'] = 'mitbbs/rate';
+}
+
+function mitbbs_thread() {
+  return 'thread';
+}
+
+function mitbbs_author() {
+  return 'author';
+}
+
+?>

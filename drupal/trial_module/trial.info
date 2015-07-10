@@ -1,0 +1,8 @@
+name = Trial Test
+description = Trial module to test Drupal functions.
+package = Customization
+core = 7.x
+
+dependencies[] = views
+
+scripts[] = trial.js
