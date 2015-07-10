@@ -162,3 +162,39 @@ function megan_create_request_form_submit($form, &$form_state) {
 }
 
 
+/**
+ * Download excel file from theme_table() data.
+ */
+function dwyr_conversion_submissions_download($gid) {
+  $table = _dwyr_conversion_submissions_get_rows($gid);
+  // return theme('table', $table);
+
+  // Open a new Webform exporter object.
+  module_load_include('inc', 'webform', 'includes/webform.export');
+  $exporter = webform_export_create_handler('excel', array());
+
+  $file_name = drupal_tempnam('temporary://', 'dwyr_conversion_');
+  $handle = @fopen($file_name, 'w'); // The @ suppresses errors.
+  $exporter->bof($handle);
+
+  // Add headers to the file.
+  $exporter->add_row($handle, $table['header']);
+  foreach ($table['rows'] as $row) {
+    // Write data from submissions.
+    $exporter->add_row($handle, $row);
+  }
+
+  // Add the closing bytes.
+  $exporter->eof($handle);
+
+  // Close the file.
+  @fclose($handle);
+
+  // transfer file
+  $franchise = dwyr_franchise_load($gid);
+  $exporter->set_headers("{$franchise->slug}_submissions");
+  @readfile($file_name);  // The @ makes it silent.
+  @unlink($file_name);  // Clean up, the @ makes it silent.
+
+  exit();
+}
