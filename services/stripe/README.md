@@ -1,0 +1,1 @@
+Stripe.com allows "on-demand" services.
