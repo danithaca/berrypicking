@@ -22,9 +22,9 @@ for link in soup.find_all('a'):
             'term': extracted,
             'url': full_url
         })
-        # node = BeautifulSoup(urllib.request.urlopen(full_url).read(), 'html.parser')
-        # print(node.body)
-        #print(href)
+        node = BeautifulSoup(urllib.request.urlopen(full_url).read(), 'html5lib')
+        print(''.join([str(x) for x in node.body.contents]))
+        break
 
 with open('crawled.json', 'w') as f:
     json.dump(data, f)
