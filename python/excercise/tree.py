@@ -95,6 +95,18 @@ def dfs_in(tree):
                     stack.append(el.left)
 
 
+def dfs_in_2(node):
+    stack = list()
+    while len(stack) > 0 or node is not None:
+        if node is not None:
+            stack.append(node)
+            node = node.left
+        else:
+            node = stack.pop()
+            print(node.val)
+            node = node.right
+
+
 # find the depth of the tree using bfs
 def tree_depth(tree):
     fifo = list()
@@ -149,5 +161,6 @@ if __name__ == '__main__':
     #dfs_pre(tree)
     #dfs_post(tree)
     #dfs_in(tree)
+    dfs_in_2(tree)
     #print("Height of tree:", tree_depth(tree))
     print_tree(tree)
