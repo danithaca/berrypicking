@@ -95,6 +95,7 @@ def dfs_in(tree):
                     stack.append(el.left)
 
 
+# another better approach of in-order DFS traverse.
 def dfs_in_2(node):
     stack = list()
     while len(stack) > 0 or node is not None:
@@ -105,6 +106,23 @@ def dfs_in_2(node):
             node = stack.pop()
             print(node.val)
             node = node.right
+
+
+# todo: not working. see wikipedia
+def dfs_post_2(node):
+    stack = list()
+    while len(stack) > 0 or node is not None:
+        if node.left is None and node.right is None:
+            print(node.val)
+            node = stack.pop()
+            continue
+
+        if node.right is not None:
+            stack.append(node.right)
+            node = node.right
+        if node.left is not None:
+            stack.append(node.left)
+            node = node.left
 
 
 # find the depth of the tree using bfs
