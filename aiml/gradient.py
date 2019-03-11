@@ -66,6 +66,7 @@ def descent_epoch(x, y, a_init, b_init):
         # print(f'Loss: {lv}')
 
         # back prop
+        # We compute gradient for all nodes, including the weights and input (x and y). but we only care about gradient for weights, not input.
         u1 = 1.0
         u2 = (1.0/(2*n)) * u1
         u3 = 2 * t3 * u2     # this is the derivative of x**2 => 2 * x
